@@ -8,4 +8,7 @@ Step 2. Install requirements.txt
 
 Step 3. Write the agent code
 - https://github.com/openai/openai-agents-python
-- 
+
+
+Step 4. Run python code
+- `python agent.py`
