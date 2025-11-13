@@ -1,2 +1,4 @@
 openai-agents
 dotenv
+streamlit
+graphiti

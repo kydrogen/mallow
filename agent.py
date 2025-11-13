@@ -12,13 +12,20 @@ def get_weather(city: str) -> str:
 
 @function_tool
 def get_artifact_details(artifact_name: str) -> str:
-    return """
-        Name: The Whispering Crescent
-        Appearance:
+    """Return the raw contents of `data/string_list.json` (as text).
 
-        The Whispering Crescent is a longbow of ethereal beauty, seemingly carved from moonlight itself. Its limbs are forged from pale silverwood that glows faintly under the night sky, veined with lines of sapphire light that pulse like a heartbeat. The bowstring is spun from the hair of a fallen star — thin as spider silk, yet impossibly strong. When drawn, faint whispers echo from the air around it, as though spirits or memories are stirred by the tension.
-        The tips of the bow curl inward like crescent moons, and when an arrow is nocked, faint runes along the limbs ignite, tracing constellations in pale blue fire. The weapon feels both ancient and alive, resonating with the will of its bearer.
+    If the file does not exist or cannot be read, return an empty string.
     """
+    from pathlib import Path
+
+    data_file = Path(__file__).parent / "data" / "string_list.json"
+    if not data_file.exists():
+        return ""
+
+    try:
+        return data_file.read_text(encoding="utf-8")
+    except Exception:
+        return ""
 
 
 agent = Agent(
