@@ -1,47 +1,33 @@
 import asyncio
-from dotenv import load_dotenv
+from pathlib import Path
 from agents import Agent, Runner, function_tool
 
-load_dotenv()
 
-
-@function_tool
-def get_weather(city: str) -> str:
-    return f"The weather in {city} is snowing."
+# Path to the persisted artifacts file (same location used by the Streamlit app)
+DATA_FILE = Path(__file__).parent / "data" / "string_list.json"
 
 
 @function_tool
 def get_artifact_details(artifact_name: str) -> str:
-    """Return the raw contents of `data/string_list.json` (as text).
-
-    If the file does not exist or cannot be read, return an empty string.
-    """
-    from pathlib import Path
-
-    data_file = Path(__file__).parent / "data" / "string_list.json"
-    if not data_file.exists():
-        return ""
-
+    """Return the raw contents of the persisted `string_list.json` or empty string."""
     try:
-        return data_file.read_text(encoding="utf-8")
+        return DATA_FILE.read_text(encoding="utf-8") if DATA_FILE.exists() else ""
     except Exception:
         return ""
 
+SYSTEM_PROMPT = """
+Tell me more details about the whispering crescent artifact.
+"""
 
 agent = Agent(
     name="Archeologist Agent",
     instructions="You are a helpful agent.",
-    tools=[get_weather, get_artifact_details],
+    tools=[get_artifact_details]
 )
 
-
-
-async def main():
-
-    result = await Runner.run(agent, input="Tell me more details about the whispering crescent artifact.")
-    print(result.final_output)
-    # The weather in Tokyo is sunny.
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+def run_agent() -> str:
+    try:
+        result = asyncio.run(Runner.run(agent, input=SYSTEM_PROMPT))
+        return getattr(result, "final_output", str(result))
+    except Exception as e:
+        return f"Agent execution failed: {e}"

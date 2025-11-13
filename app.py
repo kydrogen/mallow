@@ -48,8 +48,6 @@ if 'string_list' not in st.session_state:
 	st.session_state['string_list'] = load_persisted_list()
 
 
-
-
 # Predefined artifacts for quick add/remove
 PREDEFINED_ARTIFACTS = [
 	{
@@ -95,7 +93,6 @@ def make_toggle(artifact):
 	return toggle
 
 
-
 # UI Layout
 st.title("String List Manager")
 st.write("Use the buttons below to add or remove predefined artifacts.")
@@ -121,50 +118,13 @@ for idx, a in enumerate(st.session_state['string_list'], start=1):
 current = "\n".join(lines)
 st.text_area("Current artifacts (read-only)", value=current, height=240, disabled=True)
 
-
-# --- Embedded agent UI and tools -------------------------------------------------
-import asyncio
-from agents import Agent, Runner, function_tool
-
-
-@function_tool
-def get_weather(city: str) -> str:
-	return f"The weather in {city} is snowing."
-
-
-@function_tool
-def get_artifact_details(artifact_name: str) -> str:
-	"""Return the raw contents of the persisted `string_list.json` or empty string."""
-	try:
-		return DATA_FILE.read_text(encoding="utf-8") if DATA_FILE.exists() else ""
-	except Exception:
-		return ""
-
-
-agent = Agent(
-	name="Archeologist Agent",
-	instructions="You are a helpful agent.",
-	tools=[get_weather, get_artifact_details],
-)
-
-
-
-HARDCODED_PROMPT = "Tell me more details about the whispering crescent artifact."
-
-
+# --- Agent integration --------------------------------
+from agent import run_agent
 def run_agent_callback():
-	"""Run the agent with a hardcoded prompt and store the final output."""
-	prompt = HARDCODED_PROMPT
-	try:
-		result = asyncio.run(Runner.run(agent, input=prompt))
-		st.session_state['agent_output'] = getattr(result, 'final_output', str(result))
-	except Exception as e:
-		st.session_state['agent_output'] = f"Agent execution failed: {e}"
-
+	"""Run the agent using the helper in `agent.py` and store the final output."""
+	st.session_state['agent_output'] = run_agent()
 
 st.markdown("---")
 st.header("Agent")
 st.button("Run agent", on_click=run_agent_callback)
 st.text_area("Agent output", value=st.session_state.get('agent_output', ''), height=200)
-
-
