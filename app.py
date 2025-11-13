@@ -120,11 +120,27 @@ st.text_area("Current artifacts (read-only)", value=current, height=240, disable
 
 # --- Agent integration --------------------------------
 from agent import run_agent
-def run_agent_callback():
+def run_agent_callback(question):
 	"""Run the agent using the helper in `agent.py` and store the final output."""
-	st.session_state['agent_output'] = run_agent()
+	if question.strip():
+		try:
+			# Try passing the question as a prompt
+			st.session_state['agent_output'] = run_agent(question)
+		except TypeError:
+			# Fallback: if run_agent doesn't accept arguments, call without arguments
+			st.session_state['agent_output'] = run_agent()
+	else:
+		st.session_state['agent_output'] = "Please enter a question before sending."
 
 st.markdown("---")
 st.header("Agent")
-st.button("Run agent", on_click=run_agent_callback)
+
+# Create columns for input and button
+col1, col2 = st.columns([4, 1], vertical_alignment="bottom")
+with col1:
+	user_question = st.text_input("Ask the agent:", placeholder="Type your question here...")
+with col2:
+	if st.button("Send", use_container_width=True, key="send_button"):
+		run_agent_callback(user_question)
+
 st.text_area("Agent output", value=st.session_state.get('agent_output', ''), height=200)
