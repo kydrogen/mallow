@@ -1,4 +1,5 @@
 import asyncio
+import os
 from pathlib import Path
 from agents import Agent, Runner, function_tool
 
@@ -16,18 +17,28 @@ def get_artifact_details(artifact_name: str) -> str:
         return ""
 
 SYSTEM_PROMPT = """
-Tell me more details about the whispering crescent artifact.
+You are an archeologist agent that can access a list of artifacts.
+
+
+
+
+
 """
 
 agent = Agent(
     name="Archeologist Agent",
-    instructions="You are a helpful agent.",
+    instructions=SYSTEM_PROMPT,
     tools=[get_artifact_details]
 )
 
-def run_agent() -> str:
+
+def run_agent(question: str = None) -> str:
+    """Run the agent. If `question` is provided it will be appended to the system prompt.
+    If the environment variable `DEFAULT_AGENT_MODEL` is set it will be passed to the Runner
+    as an attempt to select a specific model/client (tries `model` then `client`).
+    """
     try:
-        result = asyncio.run(Runner.run(agent, input=SYSTEM_PROMPT))
+        result = asyncio.run(Runner.run(agent, input=question))
         return getattr(result, "final_output", str(result))
     except Exception as e:
         return f"Agent execution failed: {e}"

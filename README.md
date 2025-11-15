@@ -7,8 +7,13 @@ Step 2. Install requirements.txt
 - `pip install -r requirements.txt`
 
 Step 3. Write the agent code
-- https://github.com/openai/openai-agents-python
+- agent code sample: https://github.com/openai/openai-agents-python
+- streamlit code sample: 
+- git commands to update:
+  - `git stash push`  --save all changes locally
+  - `git pull`        --load latest from repository
 
 
 Step 4. Run python code
 - `python agent.py`
+- `streamlit run app.py`

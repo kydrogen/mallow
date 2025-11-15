@@ -51,13 +51,13 @@ if 'string_list' not in st.session_state:
 # Predefined artifacts for quick add/remove
 PREDEFINED_ARTIFACTS = [
 	{
-		"name": "The Whispering Crescent",
+		"name": "Terracotta Warriors 兵馬俑",
 		"description": (
-			"The Whispering Crescent is a longbow of ethereal beauty, seemingly carved from moonlight itself. "
-			"Its limbs are forged from pale silverwood that glows faintly under the night sky, veined with lines "
-			"of sapphire light that pulse like a heartbeat. The bowstring is spun from the hair of a fallen star — "
-			"thin as spider silk, yet impossibly strong. When drawn, faint whispers echo from the air around it, "
-			"as though spirits or memories are stirred by the tension."
+			" Found in 1974 by farmers digging in a well, Located in Xi'an, in China's Shaanxi province  "
+			" The Terracotta Army id a collection of over 8,000 life-size clay soldiers, horses, and chariots buried with the first Emperor of China, Qin Shi Huang. Each figure is unique, with intricate details in their armor, facial features, and weaponry. The army was created to protect the emperor in the afterlife and is considered one of the greatest archaeological discoveries of the 20th century."
+			" The Terracotta Warriors were created around 210-209 BCE. This project took about 700,000 workers,"
+			" Fun fact: The warriors were originally painted with bright colors, but the paint quickly faded when exposed to air. "
+			" The terricotta warriors consisted of 8000 soliders, 130 chariots with 520 horses, and 150 cavalry horses. The warriors were buried in three main pits, with the largest pit containing the majority of the soldiers. Each soldier was crafted with unique facial features and expressions, making them a remarkable example of ancient Chinese artistry."
 		),
 	},
 	{
@@ -122,13 +122,9 @@ st.text_area("Current artifacts (read-only)", value=current, height=240, disable
 from agent import run_agent
 def run_agent_callback(question):
 	"""Run the agent using the helper in `agent.py` and store the final output."""
-	if question.strip():
-		try:
-			# Try passing the question as a prompt
-			st.session_state['agent_output'] = run_agent(question)
-		except TypeError:
-			# Fallback: if run_agent doesn't accept arguments, call without arguments
-			st.session_state['agent_output'] = run_agent()
+	if question and question.strip():
+		# Pass the user's question into the agent helper
+		st.session_state['agent_output'] = run_agent(question)
 	else:
 		st.session_state['agent_output'] = "Please enter a question before sending."
 
