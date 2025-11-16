@@ -94,8 +94,7 @@ def make_toggle(artifact):
 
 
 # UI Layout
-st.title("String List Manager")
-st.write("Use the buttons below to add or remove predefined artifacts.")
+st.title("Artifacts found at site")
 
 # Quick-add buttons for predefined artifacts (click to add; click again to remove)
 cols = st.columns(3)
@@ -116,7 +115,7 @@ for idx, a in enumerate(st.session_state['string_list'], start=1):
 		lines.append(f"{idx}. {str(a)}")
 
 current = "\n".join(lines)
-st.text_area("Current artifacts (read-only)", value=current, height=240, disabled=True)
+st.text_area("Database of known artifacts", value=current, height=240, disabled=True)
 
 # --- Agent integration --------------------------------
 from agent import run_agent
