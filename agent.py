@@ -1,8 +1,7 @@
 import asyncio
 import os
 from pathlib import Path
-from agents import Agent, Runner, function_tool
-
+from agents import Agent, ItemHelpers, Runner, function_tool
 
 SYSTEM_PROMPT = """ 
 You are an archeologist agent that can access a list of artifacts. Your objective is to help the user as best as you possibly can. Try to provide as much information as possible, and to respond with clarity. Be super optimistic, and only respond to the information if you know for fact you have the correct information. This is rule is in place to not hallucinate information. Act like a detail oriented informant that is always helpful and kind. Explain everything you say, and why you are saying it.
@@ -51,48 +50,45 @@ agent = Agent(
     model=LLM_MODEL)
 
 
-def run_agent(question: str = None) -> str:
-    try:
-        result = asyncio.run(Runner.run(agent, input=question))
-        # Prefer a `final_output` attribute if present
-        if hasattr(result, "final_output"):
-            return getattr(result, "final_output") or ""
-        # If result is a primitive/string, return it
-        if isinstance(result, (str, int, float)):
-            return str(result)
-        # Try common attribute names if the runner uses them
-        for attr in ("output", "result", "response"):
-            if hasattr(result, attr):
-                val = getattr(result, attr)
-                return str(val)
-        # Fallback: return a developer-friendly repr so we can see what's coming back
-        return repr(result)
-    except Exception as e:
-        import traceback
-        tb = traceback.format_exc()
-        return f"Agent execution failed: {e}\n\n{tb}"
+async def run_agent(question: str = None, output_container=None) -> str:
+    import streamlit as st
+
+    # Use streamlit session_state if available, otherwise print to console
+    def log_message(message: str):
+        if 'agent_output' in st.session_state:
+            st.session_state['agent_output'] += message + "\n"
+
+        # output_container.markdown("---")
+        # output_container.markdown("### Agent Output")
+        output_container.markdown(st.session_state['agent_output'])
 
 
-def debug_run_agent(question: str = None) -> dict:
-    """Return diagnostic information about the raw Runner result for debugging.
+    log_message("Running...\n")
+    result = Runner.run_streamed(agent, input=question)
+    async for event in result.stream_events():
+        
+        # We'll ignore the raw responses event deltas
+        if event.type == "raw_response_event":
+            continue
 
-    Returns a dictionary with the result `type`, `repr`, and any common attributes
-    (like `final_output`, `output`, `result`, `response`, `status`) when present.
-    """
-    import traceback
-    try:
-        result = asyncio.run(Runner.run(agent, input=question))
-        info = {
-            "type": type(result).__name__,
-            "repr": repr(result),
-            "attrs": {},
-        }
-        for attr in ("final_output", "output", "result", "response", "status", "state"):
-            if hasattr(result, attr):
-                try:
-                    info["attrs"][attr] = getattr(result, attr)
-                except Exception:
-                    info["attrs"][attr] = "<unreadable>"
-        return info
-    except Exception as e:
-        return {"error": str(e), "traceback": traceback.format_exc()}
+        # When the agent updates, log that
+        elif event.type == "agent_updated_stream_event":
+            log_message(f" - Agent updated: {event.new_agent.name}\n")
+            continue
+
+        # When items are generated, log them
+        elif event.type == "run_item_stream_event":
+            if event.item.type == "tool_call_item":
+                log_message(" - Tool was called\n")
+
+            # not printing this because it's too much noise
+            # elif event.item.type == "tool_call_output_item":
+            #     log_message(f"-- Tool output: {event.item.output}")
+
+            elif event.item.type == "message_output_item":
+                log_message(f"Message output:\n {ItemHelpers.text_message_output(event.item)}")
+            else:
+                log_message(f" - Action: {event.item.type}\n")
+                
+
+

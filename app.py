@@ -40,9 +40,6 @@ st.markdown(
 		unsafe_allow_html=True,
 )
 
-# Small visible debug banner so users can confirm the app rendered
-st.markdown("<div style='padding:6px;background:#ffffffaa;border-radius:6px;'>UI loaded — debug banner</div>", unsafe_allow_html=True)
-
 # File used to persist the list so other processes (like agent.py) can read it
 DATA_DIR = Path(__file__).parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
@@ -145,17 +142,16 @@ current = "\n".join(lines)
 st.text_area("Database of known artifacts", value=current, height=240, disabled=True)
 
 # --- Agent integration --------------------------------
-from agent import run_agent, debug_run_agent
+import asyncio
+from agent import run_agent
+
 def run_agent_callback(question):
-	"""Run the agent using the helper in `agent.py` and store the final output."""
+	"""Run the agent using the helper in `agent.py` and display output in Streamlit."""	
 	if question and question.strip():
-		# Pass the user's question into the agent helper
-		st.session_state['agent_output'] = run_agent(question)
-		# also capture debug info for diagnostics
-		try:
-			st.session_state['agent_debug'] = debug_run_agent(question)
-		except Exception:
-			st.session_state['agent_debug'] = {"error": "failed to produce debug info"}
+		st.session_state['agent_output'] = ""
+		# Pass the output_container to run_agent for live updates
+		asyncio.run(run_agent(question, output_container))
+
 	else:
 		st.session_state['agent_output'] = "Please enter a question before sending."
 
@@ -168,11 +164,14 @@ with col1:
 	user_question = st.text_input("Ask the agent:", placeholder="Type your question here...")
 with col2:
 	if st.button("Send", use_container_width=True, key="send_button"):
-		run_agent_callback(user_question)
+		st.session_state['agent_request'] = user_question
 
-st.text_area("Agent output", value=st.session_state.get('agent_output', ''), height=200, disabled=True)
+# Create an empty container for streaming agent output (full-width, below columns)
+output_container = st.empty()
 
-# Optional debug view (hidden unless enabled)
-if st.checkbox("Show agent debug info"):
-	debug_info = st.session_state.get('agent_debug')
-	st.text_area("Agent debug (repr/type/attrs)", value=str(debug_info), height=300)
+# If the Send button was clicked earlier, run the agent now that
+# `output_container` exists so the agent can stream updates into it.
+if st.session_state.get('agent_request'):
+	user_question = st.session_state.pop('agent_request')
+	run_agent_callback(user_question)
+
