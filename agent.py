@@ -60,49 +60,45 @@ agent = Agent(
     tools=[get_artifact_details], 
     model=LLM_MODEL)
 
-
 async def run_agent(question: str = None, output_container=None) -> str:
     import streamlit as st
-    # Append only the agent's text outputs to session state. Hide internal
-    # debug messages like "Running...", "Agent updated", "Tool was called",
-    # and other action lines so only the agent text appears in the UI.
-    def _append_agent_text(text: str):
-        if 'agent_output' not in st.session_state:
-            st.session_state['agent_output'] = ""
-        st.session_state['agent_output'] += text
-        if output_container is not None:
-            try:
-                output_container.markdown(st.session_state['agent_output'])
-            except Exception:
-                try:
-                    output_container.markdown(str(st.session_state['agent_output']))
-                except Exception:
-                    pass
-        else:
-            print(st.session_state['agent_output'])
 
+    # Use streamlit session_state if available, otherwise print to console
+    def log_message(message: str):
+        if 'agent_output' in st.session_state:
+            st.session_state['agent_output'] += message + "\n"
+
+        # output_container.markdown("---")
+        # output_container.markdown("### Agent Output")
+        output_container.markdown(st.session_state['agent_output'])
+
+
+    log_message("Running...\n")
     result = Runner.run_streamed(agent, input=question)
     async for event in result.stream_events():
-        # Ignore raw response deltas
+        
+        # We'll ignore the raw responses event deltas
         if event.type == "raw_response_event":
             continue
 
-        # Ignore agent update events and other internal actions
-        if event.type == "agent_updated_stream_event":
+        # When the agent updates, log that
+        elif event.type == "agent_updated_stream_event":
+            log_message(f" - Agent updated: {event.new_agent.name}\n")
             continue
 
-        # Process run item events: only append message outputs
-        if event.type == "run_item_stream_event":
-            if event.item.type == "message_output_item":
-                text = ItemHelpers.text_message_output(event.item)
-                # Filter out debug lines that start with " - " or "Message output:"
-                lines = text.split('\n')
-                cleaned_lines = [line for line in lines if not line.strip().startswith(' - ') and 'Message output:' not in line]
-                cleaned_text = '\n'.join(cleaned_lines).strip()
-                if cleaned_text:
-                    _append_agent_text(cleaned_text + '\n')
-            # ignore tool calls, tool outputs, reasoning items, etc.
-            continue
+        # When items are generated, log them
+        elif event.type == "run_item_stream_event":
+            if event.item.type == "tool_call_item":
+                log_message(" - Tool was called\n")
+
+            # not printing this because it's too much noise
+            # elif event.item.type == "tool_call_output_item":
+            #     log_message(f"-- Tool output: {event.item.output}")
+
+            elif event.item.type == "message_output_item":
+                log_message(f"Message output:\n {ItemHelpers.text_message_output(event.item)}")
+            else:
+                log_message(f" - Action: {event.item.type}\n")
 
 
 

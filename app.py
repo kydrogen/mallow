@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import streamlit as st
 
 load_dotenv()
-st.set_page_config(page_title="String List Manager")
+st.set_page_config(page_title="Archeologist Agent", layout="centered")
 
 st.markdown(
 		"""
@@ -218,11 +218,3 @@ output_container = BorderedOutputProxy(_raw_output)
 if st.session_state.get('agent_request'):
 	user_question = st.session_state.pop('agent_request')
 	run_agent_callback(user_question)
-
-# Ensure agent output exists in session state
-if 'agent_output' not in st.session_state:
-    st.session_state['agent_output'] = ""
-
-# Final Agent output textarea (read-only), styled like the database box
-st.text_area("Agent output", value=st.session_state.get('agent_output', ''), height=400, disabled=True)
-
