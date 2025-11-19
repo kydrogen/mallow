@@ -70,6 +70,11 @@ async def run_agent(question: str = None, output_container=None) -> str:
 
         # output_container.markdown("---")
         # output_container.markdown("### Agent Output")
+
+        # hack for final message to override the intermediate messages
+        if len(message) > 60:
+            st.session_state['agent_output'] = message + "\n"
+
         output_container.markdown(st.session_state['agent_output'])
 
 
