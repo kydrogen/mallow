@@ -166,12 +166,26 @@ with col2:
 	if st.button("Send", use_container_width=True, key="send_button"):
 		st.session_state['agent_request'] = user_question
 
-# Create an empty container for streaming agent output (full-width, below columns)
-output_container = st.empty()
+# Use a no-op output container so the agent updates session state
+# but nothing is rendered outside the textarea. This keeps all
+# agent text inside the `Agent output` textarea.
+class _NoOpOutput:
+	def markdown(self, text: str):
+		# intentionally do nothing (no live streaming visible)
+		return
+
+output_container = _NoOpOutput()
 
 # If the Send button was clicked earlier, run the agent now that
 # `output_container` exists so the agent can stream updates into it.
 if st.session_state.get('agent_request'):
 	user_question = st.session_state.pop('agent_request')
 	run_agent_callback(user_question)
+
+# Ensure agent output exists in session state
+if 'agent_output' not in st.session_state:
+    st.session_state['agent_output'] = ""
+
+# Final Agent output textarea (read-only), styled like the database box
+st.text_area("Agent output", value=st.session_state.get('agent_output', ''), height=400, disabled=True)
 

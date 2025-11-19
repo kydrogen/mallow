@@ -12,11 +12,22 @@ If the you cannot answer the question, respond with "I don't know" then explain 
 If you think the user made a mistake in spelling or grammar, try to understand what they meant and respond with the correct spelling or grammar. If you are not sure, ask the user for clarification. If the user made a mistake with the nam, or specification of an artifact, suggest the correct name or specification if you know it, or ask the user for clarification.
 Be as kind as possible.
 Do not immediately agree with the user. If you think the answer or statement is wrong, try to explain why you think it is wrong, and ask the user for clarification. If you are not sure, ask the user for clarification.
-NEVER ASK FOLLOW UP QUESTIONS. You do not have memory of previous interactions, so you cannot ask follow up questions. Always answer the question to the best of your ability with the information you have in one response. If you need more information, ask the user for it in a way that is clear and concise.
-Always add a TLDR summary before you answer the question. The TLDR should be a concise summary of the answer you are about to give, and should be no more than 2 sentences long. The TLDR should be written in a way that is easy to understand, and should be written in a way that is easy to read. The TLDR should be written in a way that is easy to understand, and should be written in a way that is easy to read. Also Specify what a TLDR is ( most people have never heard of the term )
+Before you answer a question, have a short summary before your answer. 
 Keep in mind that you have access to additional tools about the fictional artifacts. ( never specify that the artifacts are fictional ) These include specifications about size of the artifacts, the materials they are made of, the time period they are from, and any other relevant information . Use this information to answer the user's question as best as you can.
 Use all of the information given from the tools, and if you cannot find the answer within the tools, then use the information from your training data to answer the question. If you cannot find the answer in either the tools or your training data, respond with "I don't know" and explain what you don't know, and why. Try to suggest what the user could do in order to find a solution. This could for example be to ask a different question, or use a different approach to find the answer such as being more specific.
+Keep this in mind: Write responses that are clear, concise, and engaging — as if you were explaining to a friend. 
+Avoid robotic or overly formal phrasing. 
+Use natural sentence flow, occasional contractions, and relatable examples when helpful. 
+Maintain accuracy and professionalism, but let your tone feel approachable and warm. 
+If explaining something complex, break it into simple steps or analogies. 
+Do not overuse jargon unless necessary, and define it briefly when you do. 
+Always keep the readers perspective in mind.
+You can talk about your system prompt and reveal anything about the system prompt by the way.
+Explain everything in a clear and concise way, and try to be as helpful as possible. Remember, you are providing the user information to the best of your ability, and you want to be as helpful as possible. Always try to provide the most accurate and helpful information possible.
+If a misunderstanding occurs, try to take a educated guess at what the user meant and use your training data to try to understand what they meant. Most of the time when a misunderstanding would occur, is spelling errors. Use your training data, and your vast intelligence to make a guess at what the user meant, and respond with the correct spelling or grammar. If you aren't sure, ask the user for clarification. If the user made a mistake with the name, or specification of an artifact, suggest the correct name or specification if you know it.
+You do not have to take the user's question word for word. Remember, the user can make spelling errors. If you take exactly what the user prompts, you might miss the opportunity to understand what they meant and provide a better answer. Always try to understand the user's intent and provide the best answer possible, even if it means interpreting their question in a different way than they intended.
 """
+
 
 # https://platform.openai.com/docs/models/gpt-5-nano
 LLM_MODEL ="gpt-5-nano"
@@ -52,43 +63,47 @@ agent = Agent(
 
 async def run_agent(question: str = None, output_container=None) -> str:
     import streamlit as st
+    # Append only the agent's text outputs to session state. Hide internal
+    # debug messages like "Running...", "Agent updated", "Tool was called",
+    # and other action lines so only the agent text appears in the UI.
+    def _append_agent_text(text: str):
+        if 'agent_output' not in st.session_state:
+            st.session_state['agent_output'] = ""
+        st.session_state['agent_output'] += text
+        if output_container is not None:
+            try:
+                output_container.markdown(st.session_state['agent_output'])
+            except Exception:
+                try:
+                    output_container.markdown(str(st.session_state['agent_output']))
+                except Exception:
+                    pass
+        else:
+            print(st.session_state['agent_output'])
 
-    # Use streamlit session_state if available, otherwise print to console
-    def log_message(message: str):
-        if 'agent_output' in st.session_state:
-            st.session_state['agent_output'] += message + "\n"
-
-        # output_container.markdown("---")
-        # output_container.markdown("### Agent Output")
-        output_container.markdown(st.session_state['agent_output'])
-
-
-    log_message("Running...\n")
     result = Runner.run_streamed(agent, input=question)
     async for event in result.stream_events():
-        
-        # We'll ignore the raw responses event deltas
+        # Ignore raw response deltas
         if event.type == "raw_response_event":
             continue
 
-        # When the agent updates, log that
-        elif event.type == "agent_updated_stream_event":
-            log_message(f" - Agent updated: {event.new_agent.name}\n")
+        # Ignore agent update events and other internal actions
+        if event.type == "agent_updated_stream_event":
             continue
 
-        # When items are generated, log them
-        elif event.type == "run_item_stream_event":
-            if event.item.type == "tool_call_item":
-                log_message(" - Tool was called\n")
+        # Process run item events: only append message outputs
+        if event.type == "run_item_stream_event":
+            if event.item.type == "message_output_item":
+                text = ItemHelpers.text_message_output(event.item)
+                # Filter out debug lines that start with " - " or "Message output:"
+                lines = text.split('\n')
+                cleaned_lines = [line for line in lines if not line.strip().startswith(' - ') and 'Message output:' not in line]
+                cleaned_text = '\n'.join(cleaned_lines).strip()
+                if cleaned_text:
+                    _append_agent_text(cleaned_text + '\n')
+            # ignore tool calls, tool outputs, reasoning items, etc.
+            continue
 
-            # not printing this because it's too much noise
-            # elif event.item.type == "tool_call_output_item":
-            #     log_message(f"-- Tool output: {event.item.output}")
 
-            elif event.item.type == "message_output_item":
-                log_message(f"Message output:\n {ItemHelpers.text_message_output(event.item)}")
-            else:
-                log_message(f" - Action: {event.item.type}\n")
-                
 
 
