@@ -8,7 +8,6 @@ import streamlit as st
 load_dotenv()
 st.set_page_config(page_title="String List Manager")
 
-# Ensure core UI is visible and inputs are readable (debugging layout issues)
 st.markdown(
 		"""
 		<style>
@@ -18,7 +17,7 @@ st.markdown(
 				min-height: 200vh;
 			}
 			/* Make all text black and bold */
-			body, p, h1, h2, h3, h4, h5, h6, div, span, label,.stText, .stMarkdown {
+			body, p, h1, h2, h3, h4, h5, h6, span, label,.stText {
 				color: #000000 !important;
 				font-weight: bold !important;
 			}
@@ -26,14 +25,11 @@ st.markdown(
 			input, textarea, button {
 				color: #000000 !important;
 				background-color: #bba694 !important;
-				font-weight: bold !important;
 			}
 			/* Target Streamlit textarea with all classes */
 			textarea.st-ae, textarea.st-bd, textarea.st-be, textarea.st-bf, textarea.st-bg,
-			textarea[class*="st-"],
-			.stTextArea textarea {
+			textarea[class*="st-"], .stTextArea textarea {
 				color: #000000 !important;
-				font-weight: bold !important;
 			}
 		</style>
 		""",
@@ -166,15 +162,56 @@ with col2:
 	if st.button("Send", use_container_width=True, key="send_button"):
 		st.session_state['agent_request'] = user_question
 
-# Use a no-op output container so the agent updates session state
-# but nothing is rendered outside the textarea. This keeps all
-# agent text inside the `Agent output` textarea.
-class _NoOpOutput:
-	def markdown(self, text: str):
-		# intentionally do nothing (no live streaming visible)
-		return
+# Create an empty container for streaming agent output (full-width, below columns)
+# We'll create a raw Streamlit placeholder and a small proxy wrapper that
+# ensures any markdown/write calls are wrapped in a bordered div so the
+# agent output appears with a clear black border and padding.
+_raw_output = st.empty()
 
-output_container = _NoOpOutput()
+# CSS for the bordered agent output. Adjust colors/width as desired.
+st.markdown(
+	"""
+	<style>
+	.agent-output {
+		border: 2px solid #000000 !important;
+		padding: 12px !important;
+		border-radius: 6px !important;
+		background-color: #bba694 !important;
+		color: #000000 !important;
+	}
+	</style>
+	""",
+	unsafe_allow_html=True,
+)
+
+
+class BorderedOutputProxy:
+	"""Proxy around a Streamlit DeltaGenerator that wraps content in a
+	<div class="agent-output"> ... </div> so the UI shows a black border.
+
+	This implements the minimal methods `agent.py` uses (markdown and write).
+	"""
+	def __init__(self, delta):
+		self._delta = delta
+
+	def markdown(self, text, unsafe_allow_html=False, **kwargs):
+		# Always render wrapped HTML so the border applies. We force
+		# unsafe_allow_html=True to allow the wrapper div to be rendered.
+		wrapped = f'<div class="agent-output">{text}</div>'
+		return self._delta.markdown(wrapped, unsafe_allow_html=True, **kwargs)
+
+	def write(self, *args, **kwargs):
+		# Join args into a single string and render via markdown wrapper.
+		content = " ".join(str(a) for a in args)
+		return self.markdown(content, **kwargs)
+
+	def empty(self):
+		return self._delta.empty()
+
+
+# Use the proxy when passing into the agent so all markdown/write calls
+# get the bordered wrapper automatically.
+output_container = BorderedOutputProxy(_raw_output)
 
 # If the Send button was clicked earlier, run the agent now that
 # `output_container` exists so the agent can stream updates into it.
