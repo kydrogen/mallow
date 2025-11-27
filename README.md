@@ -17,3 +17,7 @@ Step 3. Write the agent code
 Step 4. Run python code
 - `python agent.py`
 - `streamlit run app.py`
+
+
+### Sample Question
+Tell me about the Narmer Palette and the Bing Ma Yong
