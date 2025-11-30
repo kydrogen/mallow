@@ -2,3 +2,4 @@ openai-agents
 dotenv
 streamlit
 graphiti
+markdown

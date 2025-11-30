@@ -1,5 +1,7 @@
 from dotenv import load_dotenv 
 import asyncio
+from datetime import datetime
+import random
 import streamlit as st
 
 from agent import run_agent
@@ -19,6 +21,19 @@ st.set_page_config(page_title="Archeologist Agent", layout="centered")
 # ============================================================================
 # HELPER FUNCTIONS & CLASSES
 # ============================================================================
+def generate_artifact_separator(length: int = 100) -> str:
+	"""Generate a random separator alternating between '-' and '=' with 1-4 chars each."""
+	separator = []
+	current_char = random.choice(['-', '='])
+	
+	while len(separator) < length:
+		count = random.randint(1, 4)
+		separator.append(current_char * count)
+		current_char = '=' if current_char == '-' else '-'
+	
+	return ''.join(separator)[:length]
+
+
 def make_toggle(artifact):
 	"""Create a toggle callback for adding/removing artifacts."""
 	def toggle():
@@ -29,30 +44,42 @@ def make_toggle(artifact):
 		if exists:
 			st.session_state['string_list'] = [it for it in lst if not (isinstance(it, dict) and it.get('name') == artifact['name'])]
 		else:
-			st.session_state['string_list'].append(artifact)
+			# Add artifact with timestamp
+			artifact_with_timestamp = artifact.copy()
+			artifact_with_timestamp['discovered_date'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+			st.session_state['string_list'].append(artifact_with_timestamp)
 		persist_list(st.session_state['string_list'])
 	return toggle
 
 
 def format_artifact_display():
-	"""Format artifact list for display (first two lines only)."""
+	"""Format artifact list for display in the UI text area."""
 	lines = []
-	for idx, a in enumerate(st.session_state['string_list'], start=1):
-		if isinstance(a, dict):
-			name = a.get('name', '')
-			desc = a.get('description', '')
-			lines.append(f"{idx}. {name}")
-			if desc:
-				desc_lines = desc.splitlines()
-				if desc_lines:
-					lines.append(desc_lines[0])
-					if len(desc_lines) > 1:
-						lines.append(desc_lines[1])
-			lines.append("---")
-		else:
-			lines.append(f"{idx}. {str(a)}")
+	
+	for idx, artifact in enumerate(st.session_state['string_list'], start=1):
+		if not isinstance(artifact, dict):
+			lines.append(f"{idx}. {artifact}")
+			continue
+		
+		# Extract artifact fields
+		name = artifact.get('name', 'Unknown')
+		description = artifact.get('description', '')
+		discovered_date = artifact.get('discovered_date', '')
+		
+		# Add name and date
+		lines.append(f"{idx}. {name} ({discovered_date})")
+		
+		# Add first two lines of description
+		if description:
+			desc_lines = description.splitlines()[:2]
+			lines.extend(desc_lines)
+		
+		lines.append(generate_artifact_separator())
+	
 	return "\n".join(lines)
 
+
+import markdown as md
 
 class BorderedOutputProxy:
 	"""Proxy to wrap agent output in styled HTML div."""
@@ -60,7 +87,14 @@ class BorderedOutputProxy:
 		self._delta = delta
 
 	def markdown(self, text, unsafe_allow_html=False, **kwargs):
-		wrapped = f'<div class="agent-output">{text}</div>'
+		# Convert markdown to HTML so it renders properly inside the div
+		html_content = md.markdown(text)
+		scroll_script = """
+		<script>
+			window.scrollTo(0, document.body.scrollHeight);
+		</script>
+		"""
+		wrapped = f'<div class="agent-output">{html_content}</div>{scroll_script}'
 		return self._delta.markdown(wrapped, unsafe_allow_html=True, **kwargs)
 
 	def write(self, *args, **kwargs):
@@ -111,11 +145,15 @@ st.markdown(
 		}
 		/* Agent output styling */
 		.agent-output {
-			border: 2px solid #000000 !important;
+			border: 2px solid #cccccc !important;
 			padding: 12px !important;
 			border-radius: 6px !important;
 			background-color: #bba694 !important;
 			color: #000000 !important;
+		}
+		/* JSON component styling */
+		[data-testid="stJson"] {
+			background-color: #bba694 !important;
 		}
 	</style>
 	""",
@@ -131,7 +169,7 @@ if 'string_list' not in st.session_state:
 # ============================================================================
 # UI: ARTIFACTS SECTION
 # ============================================================================
-st.title("Artifacts found at site")
+st.header("Artifacts Data Repository")
 
 # Quick-add buttons for predefined artifacts
 cols = st.columns(3)
@@ -139,13 +177,14 @@ for i, art in enumerate(PREDEFINED_ARTIFACTS):
 	cols[i].button(art['name'], on_click=make_toggle(art))
 
 # Display artifact database
-st.text_area("Database of known artifacts", value=format_artifact_display(), height=240, disabled=True)
+st.subheader("Database of Artifacts at Site")
+st.json(st.session_state['string_list'], expanded=False)
 
 # ============================================================================
 # UI: AGENT SECTION
 # ============================================================================
 st.markdown("---")
-st.header("Agent")
+st.header("Agent Interaction")
 
 # Agent input form
 with st.form(key="agent_form", clear_on_submit=False):

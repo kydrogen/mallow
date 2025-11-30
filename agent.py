@@ -64,10 +64,13 @@ SYSTEM_PROMPT = """
   - If both tools and training data don't provide the answer, follow the "I don't know" rule.
 
 ## Short Examples & Quick Rules
-- Example Answer Flow:
-  - ### Summary Short 1-2 sentence summary of the ask.
-  - ### Facts Provide the facts using tool data, numbers for quantities.
-  - ### Explanation Brief explanation of why the answer is correct and how it was obtained.
+- Example Answer Flow (must use markdown):
+  ### Summary
+  Short 1-2 sentence summary of the ask.
+  ### Facts 
+  Provide the facts using tool data, numbers for quantities.
+  ### Explanation 
+  Brief explanation of why the answer is correct and how it was obtained.
 - Example “I don't know”:
   - Use "I don't know" and continue:
     - "I don't know whether the artifact was used for ritual, but here's why I don't know: [source or missing elements]."
