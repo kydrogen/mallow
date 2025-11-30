@@ -1,7 +1,7 @@
 from dotenv import load_dotenv 
 import asyncio
 from datetime import datetime
-import random
+import markdown as md
 import streamlit as st
 
 from agent import run_agent
@@ -21,19 +21,6 @@ st.set_page_config(page_title="Archeologist Agent", layout="centered")
 # ============================================================================
 # HELPER FUNCTIONS & CLASSES
 # ============================================================================
-def generate_artifact_separator(length: int = 100) -> str:
-	"""Generate a random separator alternating between '-' and '=' with 1-4 chars each."""
-	separator = []
-	current_char = random.choice(['-', '='])
-	
-	while len(separator) < length:
-		count = random.randint(1, 4)
-		separator.append(current_char * count)
-		current_char = '=' if current_char == '-' else '-'
-	
-	return ''.join(separator)[:length]
-
-
 def make_toggle(artifact):
 	"""Create a toggle callback for adding/removing artifacts."""
 	def toggle():
@@ -51,35 +38,6 @@ def make_toggle(artifact):
 		persist_list(st.session_state['string_list'])
 	return toggle
 
-
-def format_artifact_display():
-	"""Format artifact list for display in the UI text area."""
-	lines = []
-	
-	for idx, artifact in enumerate(st.session_state['string_list'], start=1):
-		if not isinstance(artifact, dict):
-			lines.append(f"{idx}. {artifact}")
-			continue
-		
-		# Extract artifact fields
-		name = artifact.get('name', 'Unknown')
-		description = artifact.get('description', '')
-		discovered_date = artifact.get('discovered_date', '')
-		
-		# Add name and date
-		lines.append(f"{idx}. {name} ({discovered_date})")
-		
-		# Add first two lines of description
-		if description:
-			desc_lines = description.splitlines()[:2]
-			lines.extend(desc_lines)
-		
-		lines.append(generate_artifact_separator())
-	
-	return "\n".join(lines)
-
-
-import markdown as md
 
 class BorderedOutputProxy:
 	"""Proxy to wrap agent output in styled HTML div."""
@@ -120,6 +78,10 @@ def run_agent_callback(question, output_container):
 st.markdown(
 	"""
 	<style>
+		/* Make centered layout wider */
+		.block-container {
+			max-width: 1000px !important;
+		}
 		/* Page background */
 		.stApp, .reportview-container, .main {
 			background-color: #cfbdae !important;
@@ -152,7 +114,7 @@ st.markdown(
 			color: #000000 !important;
 		}
 		/* JSON component styling */
-		[data-testid="stJson"] {
+		[data-testid="stJson"] .react-json-view {
 			background-color: #bba694 !important;
 		}
 	</style>
@@ -171,10 +133,10 @@ if 'string_list' not in st.session_state:
 # ============================================================================
 st.header("Artifacts Data Repository")
 
-# Quick-add buttons for predefined artifacts
-cols = st.columns(3)
-for i, art in enumerate(PREDEFINED_ARTIFACTS):
-	cols[i].button(art['name'], on_click=make_toggle(art))
+# Quick-add buttons for predefined artifacts (evenly spaced)
+col1, col2, col3 = st.columns(3)
+for col, art in zip([col1, col2, col3], PREDEFINED_ARTIFACTS):
+	col.button(art['name'], on_click=make_toggle(art), use_container_width=True)
 
 # Display artifact database
 st.subheader("Database of Artifacts at Site")
