@@ -82,11 +82,53 @@ st.markdown(
 		/* Make centered layout wider */
 		.block-container {
 			max-width: 1000px !important;
+			padding: 2rem 1rem !important;
+			background-color: #cfbdae !important;
 		}
 		/* Page background */
 		.stApp, .reportview-container, .main {
 			background-color: #cfbdae !important;
 			min-height: 200vh;
+		}
+		/* Remove white backgrounds from containers */
+		[data-testid="stAppViewContainer"] {
+			background-color: #cfbdae !important;
+		}
+		[data-testid="stHeader"] {
+			background-color: #cfbdae !important;
+		}
+		section[data-testid="stSidebar"] {
+			background-color: #cfbdae !important;
+		}
+		/* Fix scrollbar styling */
+		* {
+			scrollbar-color: #bba694 #cfbdae;
+			scrollbar-width: thin;
+		}
+		/* Disable scrolling on i	nner containers to prevent double scrollbars */
+		[data-testid="stAppViewContainer"] {
+			overflow-y: auto !important;
+		}
+		[data-testid="stAppViewContainer"] > div:first-child {
+			overflow-y: visible !important;
+		}
+		::-webkit-scrollbar {
+			width: 12px;
+			height: 12px;
+		}
+		::-webkit-scrollbar-track {
+			background: #cfbdae;
+		}
+		::-webkit-scrollbar-thumb {
+			background: #bba694;
+			border-radius: 6px;
+		}
+		::-webkit-scrollbar-thumb:hover {
+			background: #a89683;
+		}
+		/* Streamlit element spacing */
+		[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
+			margin-bottom: 3rem !important;
 		}
 		/* Make all text black */
 		body, p, h1, h2, h3, h4, h5, h6, span, label,.stText {
@@ -113,6 +155,7 @@ st.markdown(
 			border-radius: 6px !important;
 			background-color: #bba694 !important;
 			color: #000000 !important;
+			margin: 1.5rem 0 !important;
 		}
 		/* JSON component styling */
 		[data-testid="stJson"] .react-json-view {
@@ -122,6 +165,7 @@ st.markdown(
 		[data-testid="stExpander"] {
 			background-color: #bba694 !important;
 			border: 0 !important;
+			margin: 1rem 0 !important;
 		}
 		[data-testid="stExpander"] button {
 			background-color: #bba694 !important;
@@ -135,8 +179,9 @@ st.markdown(
 			background-color: #bba694;
 			border: 2px solid #8c7862;
 			border-radius: 8px;
-			padding: 16px;
-			margin-bottom: 12px;
+			padding: 20px;
+			margin-bottom: 1.5rem;
+			margin-top: 1rem;
 			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 			color: #000000;
 		}
@@ -150,9 +195,10 @@ st.markdown(
 			background-color: #bba694;
 			border: 2px solid #8c7862;
 			border-radius: 8px;
-			padding: 12px 16px;
+			padding: 16px 20px;
 			color: #000000;
-			margin-top: 0.75rem;
+			margin-top: 1rem;
+			margin-bottom: 1.5rem;
 		}
 		.artifact-title {
 			font-size: 1rem;
@@ -201,7 +247,58 @@ st.markdown(
 			text-align: center;
 			font-size: 2.7rem;
 			font-weight: 700;
-			margin-bottom: 0.25rem;
+			margin-bottom: 1rem;
+			margin-top: 0;
+		}
+		/* Section spacing */
+		.section-header {
+			margin-top: 3rem !important;
+			margin-bottom: 1.5rem !important;
+		}
+		/* Agent section container */
+		.agent-section {
+			margin-bottom: 3.5rem !important;
+		}
+		/* Button row spacing */
+		.artifact-buttons-row {
+			margin-bottom: 2rem !important;
+		}
+		/* Instructions panel styling */
+		.instructions-panel {
+			background-color: #bba694 !important;
+			padding: 20px !important;
+			border-radius: 8px !important;
+			border: 2px solid #8c7862 !important;
+			margin-bottom: 3rem !important;
+		}
+		/* How to use button - top right corner */
+		.how-to-use-btn {
+			position: fixed;
+			top: 120px;
+			right: 20px;
+			background-color: #bba694 !important;
+			color: #000000 !important;
+			border: 2px solid #8c7862;
+			border-radius: 6px;
+			padding: 8px 16px;
+			font-weight: 600;
+			cursor: pointer;
+			z-index: 1000;
+		}
+		.how-to-use-btn:hover {
+			background-color: #a89683 !important;
+		}
+		/* Hide default form submit hint and replace with custom text */
+		form small {
+			display: none !important;
+		}
+		form::after {
+			content: "Press Enter to ask the agent a question!";
+			display: block;
+			font-size: 0.75rem;
+			color: #666;
+			margin-top: 0.5rem;
+			text-align: right;
 		}
 	</style>
 	""",
@@ -214,11 +311,42 @@ st.markdown(
 if 'string_list' not in st.session_state:
 	st.session_state['string_list'] = load_persisted_list()
 
+if 'show_instructions' not in st.session_state:
+	st.session_state['show_instructions'] = False
+
+# ============================================================================
+# UI: HOW TO USE BUTTON
+# ============================================================================
+st.markdown('<div style="height: 2rem;"></div>', unsafe_allow_html=True)
+col1, col2 = st.columns([0.85, 0.15])
+with col2:
+	if st.button("How To Use", use_container_width=True, key="how_to_use_btn"):
+		st.session_state['show_instructions'] = not st.session_state['show_instructions']
+
+# Display instructions panel if button is clicked
+if st.session_state['show_instructions']:
+	st.markdown("""
+	<div class="instructions-panel">
+	
+	### How to Use
+	
+	**How to use our app!**
+	
+	1. **Add Artifacts**: Click the artifact buttons (Laufen Lens, Hohenfeld Basalt Slab, Altbrunn Prism) to add them to the data repository below. You can also click the button again to remove an artifact. The data repository is the box under the 3 buttons.
+	
+	2. **View Database**: The artifacts you add will appear in the database section. It will show the name of the discovered artifact, the date discovered, and a short description of the artifact. You can click on the "Details" section to see more about the artifact.
+	
+	3. **Ask Questions**: Type a question in the text box and click "Send" to ask the agent about the artifacts. (The AI agent can only answer questions regarding the 3 artifacts given)
+	
+	4. **Agent Responses**: To ask the agent another question, delete the question you asked originally, then type another question for the agent to answer!
+	</div>
+	""", unsafe_allow_html=True)
+
 # ============================================================================
 # UI: AGENT SECTION
 # ============================================================================
 st.markdown('<h2 class="ai-prototype-title">AI prototype</h2>', unsafe_allow_html=True)
-st.header("Agent Interaction")
+st.markdown('<h2 class="section-header">Agent Interaction</h2>', unsafe_allow_html=True)
 
 # Agent input form
 with st.form(key="agent_form", clear_on_submit=False):
@@ -238,12 +366,12 @@ with st.form(key="agent_form", clear_on_submit=False):
 _raw_output = st.empty()
 output_container = BorderedOutputProxy(_raw_output)
 
-st.markdown("---")
+st.markdown('<div style="margin-bottom: 3.5rem;"></div>', unsafe_allow_html=True)
 
 # ============================================================================
 # UI: ARTIFACTS SECTION
 # ============================================================================
-st.header("Artifacts Data Repository")
+st.markdown('<h2 class="section-header">Artifacts Data Repository</h2>', unsafe_allow_html=True)
 
 # Quick-add buttons for predefined artifacts (evenly spaced)
 col1, col2, col3 = st.columns(3)
@@ -291,15 +419,7 @@ else:
 					<pre>{pretty_metadata}</pre>
 				</div>
 				"""
-			details_block = f"""
-			<div class=\"artifact-details\">
-				<details>
-					<summary>Details</summary>
-					<div class=\"artifact-description\">{description_html}</div>
-					{metadata_html}
-				</details>
-			</div>
-			"""
+			details_block = f"""<details style="background-color: #bba694; border: 1px solid #8c7862; border-radius: 6px; padding: 0.75rem; margin-top: 0.75rem;"><summary style="font-weight: 600; cursor: pointer; list-style: none;">▶ Details</summary><div style="margin-top: 0.5rem;">{description_html}</div>{metadata_html}</details>"""
 
 			card_html = f"""
 			<div class=\"artifact-card\">
