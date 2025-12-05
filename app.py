@@ -79,6 +79,13 @@ def run_agent_callback(question, output_container):
 st.markdown(
 	"""
 	<style>
+		/* Hide browser scrollbar completely */
+		html {
+			overflow: hidden !important;
+		}
+		body {
+			overflow: hidden !important;
+		}
 		/* Make centered layout wider */
 		.block-container {
 			max-width: 1000px !important;
@@ -90,10 +97,14 @@ st.markdown(
 		.stApp, .reportview-container, .main {
 			background-color: #cfbdae !important;
 		}
-		/* Remove white backgrounds from containers */
+		/* Main scrolling container */
 		[data-testid="stAppViewContainer"] {
 			background-color: #cfbdae !important;
-			overflow: visible !important;
+			overflow-y: auto !important;
+			overflow-x: hidden !important;
+			height: 100vh !important;
+			scrollbar-color: #bba694 #cfbdae;
+			scrollbar-width: thin;
 		}
 		[data-testid="stHeader"] {
 			background-color: #cfbdae !important;
@@ -101,38 +112,32 @@ st.markdown(
 		section[data-testid="stSidebar"] {
 			background-color: #cfbdae !important;
 		}
-		/* Fix scrollbar styling - single scrollbar only */
-		html {
-			scrollbar-color: #bba694 #cfbdae;
-			scrollbar-width: thin;
-		}
-		body {
-			overflow-y: scroll !important;
-			overflow-x: hidden !important;
-		}
 		/* Prevent nested scrolling */
 		.stApp {
-			overflow: visible !important;
+			overflow: hidden !important;
 		}
 		.stMainBlockContainer {
 			overflow: visible !important;
 		}
-		::-webkit-scrollbar {
+		/* Style scrollbar for the main container */
+		[data-testid="stAppViewContainer"]::-webkit-scrollbar {
 			width: 12px;
 			height: 12px;
 		}
-		::-webkit-scrollbar-track {
+		[data-testid="stAppViewContainer"]::-webkit-scrollbar-track {
 			background: #cfbdae;
 		}
-		::-webkit-scrollbar-thumb {
+		[data-testid="stAppViewContainer"]::-webkit-scrollbar-thumb {
 			background: #bba694;
 			border-radius: 6px;
 		}
-		::-webkit-scrollbar-thumb:hover {
+		[data-testid="stAppViewContainer"]::-webkit-scrollbar-thumb:hover {
 			background: #a89683;
 		}
-		/* Prevent webkit scrollbars on children */
-		.block-container ::-webkit-scrollbar {
+		/* Hide all other scrollbars */
+		::-webkit-scrollbar {
+			width: 0px;
+			height: 0px;
 			display: none;
 		}
 		/* Streamlit element spacing */
