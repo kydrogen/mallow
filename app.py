@@ -84,15 +84,16 @@ st.markdown(
 			max-width: 1000px !important;
 			padding: 2rem 1rem !important;
 			background-color: #cfbdae !important;
+			overflow: visible !important;
 		}
 		/* Page background */
 		.stApp, .reportview-container, .main {
 			background-color: #cfbdae !important;
-			min-height: 200vh;
 		}
 		/* Remove white backgrounds from containers */
 		[data-testid="stAppViewContainer"] {
 			background-color: #cfbdae !important;
+			overflow: visible !important;
 		}
 		[data-testid="stHeader"] {
 			background-color: #cfbdae !important;
@@ -100,17 +101,21 @@ st.markdown(
 		section[data-testid="stSidebar"] {
 			background-color: #cfbdae !important;
 		}
-		/* Fix scrollbar styling */
-		* {
+		/* Fix scrollbar styling - single scrollbar only */
+		html {
 			scrollbar-color: #bba694 #cfbdae;
 			scrollbar-width: thin;
 		}
-		/* Disable scrolling on i	nner containers to prevent double scrollbars */
-		[data-testid="stAppViewContainer"] {
-			overflow-y: auto !important;
+		body {
+			overflow-y: scroll !important;
+			overflow-x: hidden !important;
 		}
-		[data-testid="stAppViewContainer"] > div:first-child {
-			overflow-y: visible !important;
+		/* Prevent nested scrolling */
+		.stApp {
+			overflow: visible !important;
+		}
+		.stMainBlockContainer {
+			overflow: visible !important;
 		}
 		::-webkit-scrollbar {
 			width: 12px;
@@ -125,6 +130,10 @@ st.markdown(
 		}
 		::-webkit-scrollbar-thumb:hover {
 			background: #a89683;
+		}
+		/* Prevent webkit scrollbars on children */
+		.block-container ::-webkit-scrollbar {
+			display: none;
 		}
 		/* Streamlit element spacing */
 		[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] {
